@@ -75,6 +75,8 @@ app.post('/api/admin/tour',h(async r=>{needAdmin(r);const b=r.body;if(!S(b.name)
 app.post('/api/admin/room',h(async r=>{needAdmin(r);await q('update tours set room_id=$2,room_pass=$3 where id=$1',[+r.body.id,S(r.body.room,40),S(r.body.pass,40)])}));
 app.post('/api/admin/deltour',h(async r=>{needAdmin(r);await q('delete from tours where id=$1',[+r.body.id])}));
 
+
+
 app.use(express.static(path.join(__dirname,'public')));
 
 // Start server FIRST
@@ -164,3 +166,8 @@ app.listen(PORT, '0.0.0.0', () => {
 })().catch(e => {
   console.error('DATABASE ERROR:', e);
 });
+
+
+
+
+
