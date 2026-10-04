@@ -76,12 +76,91 @@ app.post('/api/admin/room',h(async r=>{needAdmin(r);await q('update tours set ro
 app.post('/api/admin/deltour',h(async r=>{needAdmin(r);await q('delete from tours where id=$1',[+r.body.id])}));
 
 app.use(express.static(path.join(__dirname,'public')));
-(async()=>{await q(`
-create table if not exists users(id serial primary key,phone text unique not null,name text not null,pin_hash text not null,code text unique not null,ref_by int references users(id),paid boolean default false,bal int default 0 check(bal>=0),created timestamptz default now());
-create table if not exists tours(id serial primary key,game text,name text,starts text,mode text,fee int,prize int,slots int,upi text,room_id text default '',room_pass text default '');
-create table if not exists regs(id serial primary key,tid int references tours(id) on delete cascade,uid int references users(id),phone text,team text,players jsonb,utr text,status text default 'pending',created timestamptz default now(),constraint regs_one unique(tid,uid),constraint regs_utr unique(utr));
-create table if not exists gids(gid text primary key,uid int not null);
-create table if not exists wd(id serial primary key,uid int references users(id),amt int,upi text,s text default 'pending',created timestamptz default now());
-create table if not exists log(id serial primary key,uid int references users(id),a int,n text,t timestamptz default now());`);
- if(!(await q('select 1 from tours limit 1')).rows.length)await q(`insert into tours(game,name,starts,mode,fee,prize,slots,upi) values('BGMI','Weekend Chicken Dinner Cup','2026-10-11T20:00','Squad',100,5000,25,'arena@upi'),('Free Fire MAX','Booyah Showdown','2026-10-12T19:00','Duo',50,2500,24,'arena@upi')`);
- app.listen(process.env.PORT||3000,()=>console.log('Arena India running'))})().catch(e=>{console.error(e);process.exit(1)});
+
+// Start server FIRST
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Arena India running on port ${PORT}`);
+});
+
+// Then initialize database
+(async()=>{
+  await q(`
+    create table if not exists users(
+      id serial primary key,
+      phone text unique not null,
+      name text not null,
+      pin_hash text not null,
+      code text unique not null,
+      ref_by int references users(id),
+      paid boolean default false,
+      bal int default 0 check(bal>=0),
+      created timestamptz default now()
+    );
+
+    create table if not exists tours(
+      id serial primary key,
+      game text,
+      name text,
+      starts text,
+      mode text,
+      fee int,
+      prize int,
+      slots int,
+      upi text,
+      room_id text default '',
+      room_pass text default ''
+    );
+
+    create table if not exists regs(
+      id serial primary key,
+      tid int references tours(id) on delete cascade,
+      uid int references users(id),
+      phone text,
+      team text,
+      players jsonb,
+      utr text,
+      status text default 'pending',
+      created timestamptz default now(),
+      constraint regs_one unique(tid,uid),
+      constraint regs_utr unique(utr)
+    );
+
+    create table if not exists gids(
+      gid text primary key,
+      uid int not null
+    );
+
+    create table if not exists wd(
+      id serial primary key,
+      uid int references users(id),
+      amt int,
+      upi text,
+      s text default 'pending',
+      created timestamptz default now()
+    );
+
+    create table if not exists log(
+      id serial primary key,
+      uid int references users(id),
+      a int,
+      n text,
+      t timestamptz default now()
+    );
+  `);
+
+  if(!(await q('select 1 from tours limit 1')).rows.length) {
+    await q(`
+      insert into tours(game,name,starts,mode,fee,prize,slots,upi)
+      values
+      ('BGMI','Weekend Chicken Dinner Cup','2026-10-11T20:00','Squad',100,5000,25,'arena@upi'),
+      ('Free Fire MAX','Booyah Showdown','2026-10-12T19:00','Duo',50,2500,24,'arena@upi')
+    `);
+  }
+
+  console.log('Database initialized successfully');
+
+})().catch(e => {
+  console.error('DATABASE ERROR:', e);
+});
