@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arena India – BGMI & Free Fire MAX Tournaments</title>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--tx:#14161c;--mu:#667;--bd:#dde0e8;--ac:#ff5a1f;--ok:#12a150;--bad:#d62839;--bg2:#eceef3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1015;--card:#181b23;--tx:#eef0f5;--mu:#98a0b3;--bd:#2a2f3b;--bg2:#10131a}}
+:root[data-theme="dark"]{--bg:#0e1015;--card:#181b23;--tx:#eef0f5;--mu:#98a0b3;--bd:#2a2f3b;--bg2:#10131a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bd);background:var(--card);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.logo{font-weight:800;font-size:19px;letter-spacing:.5px}.logo b{color:var(--ac)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+button,.btn{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--bg2);color:var(--tx);padding:7px 13px;border-radius:8px;text-decoration:none;display:inline-block}
+button.on,button.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+button.sm{padding:4px 9px;font-size:13px}button.bad{color:var(--bad)}button.ok{color:var(--ok)}
+main{max-width:1000px;margin:0 auto;padding:18px}
+h2{margin:6px 0 14px}h3{margin:18px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:15px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--bg2);border:1px solid var(--bd)}
+.tag.b{color:#e8a200}.tag.f{color:#ff5a1f}
+.row{display:flex;justify-content:space-between;gap:8px;margin:3px 0;color:var(--mu);font-size:14px}.row b{color:var(--tx)}
+.bar{height:6px;background:var(--bg2);border-radius:9px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--ac)}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
+input,select{width:100%;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--tx)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.f2{grid-template-columns:1fr}}
+.wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.st-pending{color:#e8a200}.st-approved{color:var(--ok)}.st-rejected{color:var(--bad)}
+.msg{padding:9px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--bd);margin:10px 0}
+.room{margin-top:8px;padding:8px;border:1px dashed var(--ok);border-radius:8px;font-size:14px}
+.mu{color:var(--mu)}
+</style></head><body>
+<header><div class="logo">ARENA<b>.IN</b> 🎮</div>
+<nav id="nav"></nav></header>
+<main id="app"></main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ADMIN_PASS='admin123'; // change this before sharing
+const MINW=80,REF=5; // minimum withdrawal ₹80, referral bonus ₹5
+const seed={T:[
+{id:1,game:'BGMI',name:'Weekend Chicken Dinner Cup',date:'2026-10-11T20:00',mode:'Squad',fee:100,prize:5000,slots:25,upi:'arena@upi',room:'',pass:''},
+{id:2,game:'Free Fire MAX',name:'Booyah Showdown',date:'2026-10-12T19:00',mode:'Duo',fee:50,prize:2500,slots:24,upi:'arena@upi',room:'',pass:''}],R:[],U:[],W:[],L:[],n:3};
+let D;try{D=JSON.parse(localStorage.getItem('arena')||'null')}catch(e){}D=D||seed;D.U=D.U||[];D.W=D.W||[];D.L=D.L||[];
+let me=null;try{me=sessionStorage.getItem('arenaMe')}catch(e){}
+let view='home',filter='All',admin=false,atab='tours',regTid=null;
+const save=()=>{try{localStorage.setItem('arena',JSON.stringify(D))}catch(e){}};
+const need={Solo:1,Duo:2,Squad:4};
+const taken=id=>D.R.filter(r=>r.tid==id&&r.status!='rejected').length;
+const fmt=d=>new Date(d).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+const tagc=g=>g=='BGMI'?'b':'f';
+const er=(i,m)=>{$('#'+i).textContent=m};
+const cr=(p,a,n)=>{const u=D.U.find(x=>x.p==p);if(!u)return;u.bal+=a;D.L.push({p,a,n,t:Date.now()})};
+
+function nav(){const items=[['home','Tournaments'],['status',me?'My Wallet':'Login / Sign up'],['admin',admin?'Admin Panel':'Admin Login']];
+$('#nav').innerHTML=items.map(([k,l])=>`<button class="${view==k||(k=='home'&&view=='reg')?'on':''}" onclick="go('${k}')">${l}</button>`).join('')}
+function go(v){view=v;render()}
+function render(){nav();({home,reg,status,admin:adminView})[view]();window.scrollTo(0,0)}
+
+function card(t,showBtn=true){const n=taken(t.id),full=n>=t.slots;
+return `<div class="card"><span class="tag ${tagc(t.game)}">${esc(t.game)}</span> <span class="tag">${esc(t.mode)}</span>
+<h3 style="margin:8px 0">${esc(t.name)}</h3>
+<div class="row">Starts<b>${fmt(t.date)}</b></div><div class="row">Entry fee<b>₹${t.fee}</b></div><div class="row">Prize pool<b>₹${t.prize}</b></div>
+<div class="row">Slots<b>${n}/${t.slots}</b></div><div class="bar"><i style="width:${Math.min(100,n/t.slots*100)}%"></i></div>
+${showBtn?`<button class="pri" ${full?'disabled':''} onclick="regTid=${t.id};go('reg')">${full?'Slots Full':'Register Now'}</button>`:''}</div>`}
+function home(){const list=D.T.filter(t=>filter=='All'||t.game==filter);
+$('#app').innerHTML=`<h2>Upcoming Tournaments</h2><div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+${['All','BGMI','Free Fire MAX'].map(f=>`<button class="${filter==f?'on':''}" onclick="filter='${f}';home()">${f}</button>`).join('')}</div>
+<div class="grid">${list.map(t=>card(t)).join('')||'<p class="mu">No tournaments yet.</p>'}</div>`}
+
+function reg(){const t=D.T.find(x=>x.id==regTid);if(!t)return go('home');if(!me)return go('status');const k=need[t.mode];
+let mem='';for(let i=2;i<=k;i++)mem+=`<div class="f2"><div><label>Player ${i} name</label><input class="pn" required></div><div><label>Player ${i} Game UID</label><input class="pu"></div></div>`;
+$('#app').innerHTML=`<h2>Register</h2><div style="max-width:560px">${card(t,false)}
+<div class="card" style="margin-top:14px"><div class="msg">Pay <b>₹${t.fee}</b> to UPI <b>${esc(t.upi)}</b>, then enter the UTR / transaction ID below. Admin approves after checking payment.</div>
+<label>${k>1?'Team name':'Display name'}</label><input id="team">
+<div class="f2"><div><label>Player 1 (Leader) in-game name</label><input id="ign"></div><div><label>Game UID</label><input id="uid" inputmode="numeric"></div></div>
+${mem}
+<label>UTR / Txn ID</label><input id="utr">
+<p id="err" style="color:var(--bad)"></p><button class="pri" onclick="submitReg(${t.id})">Submit Registration</button> <button onclick="go('home')">Cancel</button></div></div>`}
+function submitReg(id){const t=D.T.find(x=>x.id==id),v=i=>($('#'+i).value||'').trim();
+const players=[{n:v('ign'),u:v('uid')}];const ns=[...document.querySelectorAll('.pn')],us=[...document.querySelectorAll('.pu')];ns.forEach((e,i)=>players.push({n:e.value.trim(),u:us[i].value.trim()}));
+const e=m=>er('err',m);
+if(!v('team')||players.some(p=>!p.n))return e('Fill team and all player names.');
+if(!/^\d{6,15}$/.test(v('uid')))return e('Enter a valid Game UID (digits).');
+if(D.R.some(r=>r.phone!=me&&r.players[0].u==v('uid')&&r.status!='rejected'))return e('This Game UID is already used by another account.');
+if(v('utr').length<8)return e('Enter a valid UTR / transaction ID.');
+if(D.R.some(r=>r.utr==v('utr')&&r.status!='rejected'))return e('This UTR was already submitted.');
+if(taken(id)>=t.slots)return e('Sorry, slots are full.');
+if(D.R.some(r=>r.tid==id&&r.phone==me&&r.status!='rejected'))return e('You are already registered here.');
+D.R.push({id:D.n++,tid:id,team:v('team'),players,phone:me,utr:v('utr'),status:'pending'});save();
+view='status';render();}
+
+function login(){const u=D.U.find(x=>x.p==$('#lp').value.trim()&&x.q==$('#lq').value.trim());if(!u)return er('e1','Wrong mobile number or PIN.');setMe(u.p)}
+function setMe(p){me=p;try{p?sessionStorage.setItem('arenaMe',p):sessionStorage.removeItem('arenaMe')}catch(e){}go(p?'status':'home')}
+function signup(){const v=i=>$('#'+i).value.trim(),n=v('sn'),ph=v('sp'),q=v('sq'),rc=v('sr').toUpperCase();
+if(!n)return er('e2','Enter your name.');if(!/^[6-9]\d{9}$/.test(ph))return er('e2','Enter a valid 10-digit mobile number.');
+if(D.U.some(x=>x.p==ph))return er('e2','This mobile number already has an account. Please login.');
+if(!/^\d{4,6}$/.test(q))return er('e2','PIN must be 4-6 digits.');
+let by='';if(rc){const r=D.U.find(x=>x.code==rc);if(!r)return er('e2','Invalid referral code.');by=r.p}
+let code;do{code=Math.random().toString(36).slice(2,8).toUpperCase()}while(D.U.some(x=>x.code==code));
+D.U.push({p:ph,name:n,q,code,by,paid:0,bal:0});save();setMe(ph)}
+function withdraw(){const u=D.U.find(x=>x.p==me),a=+$('#wa').value,up=$('#wu').value.trim();
+if(!(a>=MINW))return er('e3','Minimum withdrawal is ₹'+MINW+'.');if(a>u.bal)return er('e3','Not enough balance.');
+if(!/^[\w.\-]{2,}@\w{2,}$/.test(up))return er('e3','Enter a valid UPI ID.');
+u.bal-=a;D.W.push({id:D.n++,p:me,a,upi:up,s:'pending'});D.L.push({p:me,a:-a,n:'Withdrawal requested',t:Date.now()});save();status()}
+
+function status(){
+if(!me||!D.U.find(x=>x.p==me)){me=null;
+$('#app').innerHTML=`<h2>Login / Sign up</h2><div class="grid"><div class="card"><h3 style="margin-top:0">Login</h3><label>Mobile number</label><input id="lp" inputmode="tel" maxlength="10"><label>PIN</label><input id="lq" type="password" inputmode="numeric"><p id="e1" style="color:var(--bad)"></p><button class="pri" onclick="login()">Login</button></div>
+<div class="card"><h3 style="margin-top:0">New account</h3><label>Name</label><input id="sn"><label>Mobile number (1 number = 1 account)</label><input id="sp" inputmode="tel" maxlength="10"><label>Create PIN (4-6 digits)</label><input id="sq" type="password" inputmode="numeric" maxlength="6"><label>Referral code (optional)</label><input id="sr"><p id="e2" style="color:var(--bad)"></p><button class="pri" onclick="signup()">Create account</button></div></div>`;return}
+const u=D.U.find(x=>x.p==me),rs=D.R.filter(r=>r.phone==me),L=D.L.filter(l=>l.p==me).reverse(),refs=D.U.filter(x=>x.by==me),
+earned=L.filter(l=>l.n.startsWith('Referral')).reduce((s,l)=>s+l.a,0),pw=D.W.filter(w=>w.p==me).reverse(),
+txt=encodeURIComponent('Join Arena India BGMI & Free Fire tournaments! Sign up with my code '+u.code+' - '+location.href);
+$('#app').innerHTML=`<h2>Hi, ${esc(u.name)} <button class="sm" onclick="setMe(null)">Logout</button></h2><div class="grid">
+<div class="card"><span class="tag">Wallet</span><h2 style="margin:8px 0">₹${u.bal}</h2><div class="mu">Winnings + referral earnings. Minimum withdrawal ₹${MINW}.</div>
+<label>Amount (₹)</label><input id="wa" type="number" min="${MINW}"><label>Your UPI ID</label><input id="wu"><p id="e3" style="color:var(--bad)"></p><button class="pri" onclick="withdraw()">Withdraw</button></div>
+<div class="card"><span class="tag">Refer &amp; Earn</span><h3 style="margin:8px 0">₹${REF} per friend</h3><div class="row">Your code<b>${esc(u.code)}</b></div><div class="row">Friends joined<b>${refs.length}</b></div><div class="row">Earned<b>₹${earned}</b></div>
+<p class="mu">You get ₹${REF} when your friend's first registration is approved. One mobile number = one account.</p><a class="btn" href="https://wa.me/?text=${txt}" target="_blank" rel="noopener">Share on WhatsApp</a></div></div>
+<h3>My registrations</h3><div class="grid">${rs.map(r=>{const t=D.T.find(x=>x.id==r.tid)||{};return `<div class="card"><b>${esc(t.name)}</b> <span class="tag">${esc(t.game)}</span>
+<div class="row">Team<b>${esc(r.team)}</b></div><div class="row">Status<b class="st-${r.status}">${r.status.toUpperCase()}</b></div>
+${r.status=='approved'?(t.room?`<div class="room">Room ID: <b>${esc(t.room)}</b><br>Password: <b>${esc(t.pass)}</b></div>`:'<div class="room mu">Room details will appear here before match time.</div>'):''}
+${r.status=='pending'?'<p class="mu">Payment is being verified by admin.</p>':''}</div>`}).join('')||'<p class="mu">No registrations yet.</p>'}</div>
+<h3>Withdrawals</h3><div class="card wrap"><table><tr><th>Amount</th><th>UPI</th><th>Status</th></tr>${pw.map(w=>`<tr><td>₹${w.a}</td><td>${esc(w.upi)}</td><td class="st-${w.s=='paid'?'approved':w.s=='pending'?'pending':'rejected'}">${w.s}</td></tr>`).join('')||'<tr><td colspan="3" class="mu">None yet.</td></tr>'}</table></div>
+<h3>Wallet history</h3><div class="card wrap"><table>${L.map(l=>`<tr><td>${fmt(l.t)}</td><td>${esc(l.n)}</td><td class="${l.a<0?'st-rejected':'st-approved'}">${l.a<0?'-':'+'}₹${Math.abs(l.a)}</td></tr>`).join('')||'<tr><td class="mu">No transactions yet.</td></tr>'}</table></div>`}
+
+function adminView(){if(!admin){$('#app').innerHTML=`<h2>Admin Login</h2><div class="card" style="max-width:380px"><label>Password</label><input id="ap" type="password">
+<p id="err" style="color:var(--bad)"></p><button class="pri" onclick="if($('#ap').value==ADMIN_PASS){admin=true;render()}else er('err','Wrong password')">Login</button></div>`;return}
+const tabs=[['tours','Tournaments'],['regs','Registrations'],['wallet','Wallet & Users'],['add','+ Add Tournament']];
+let h=`<h2>Admin Panel</h2><div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">${tabs.map(([k,l])=>`<button class="${atab==k?'on':''}" onclick="atab='${k}';adminView()">${l}</button>`).join('')}<button onclick="admin=false;go('home')">Logout</button></div>`;
+if(atab=='wallet')h+=walletView();
+if(atab=='add')h+=addForm();
+if(atab=='tours')h+=`<div class="grid">${D.T.map(t=>`<div class="card">${card(t,false).replace(/^<div class="card">|<\/div>$/g,'')}
+<label>Room ID</label><input id="rm${t.id}" value="${esc(t.room)}"><label>Room password</label><input id="rp${t.id}" value="${esc(t.pass)}">
+<div style="margin-top:10px;display:flex;gap:6px"><button class="sm ok" onclick="setRoom(${t.id})">Publish room</button><button class="sm bad" onclick="delT(${t.id})">Delete</button></div></div>`).join('')}</div>`;
+if(atab=='regs')h+=`<div class="card wrap"><table><tr><th>Tournament</th><th>Team</th><th>Players (UID)</th><th>Phone</th><th>UTR</th><th>Status</th><th></th></tr>
+${D.R.map(r=>{const t=D.T.find(x=>x.id==r.tid)||{name:'(deleted)'};return `<tr><td>${esc(t.name)}</td><td>${esc(r.team)}</td><td>${r.players.map(p=>esc(p.n)+(p.u?' ('+esc(p.u)+')':'')).join(', ')}</td><td>${esc(r.phone)}</td><td>${esc(r.utr)}</td><td class="st-${r.status}">${r.status}</td>
+<td><button class="sm ok" onclick="setS(${r.id},'approved')">Approve</button> <button class="sm bad" onclick="setS(${r.id},'rejected')">Reject</button></td></tr>`}).join('')||'<tr><td colspan="7" class="mu">No registrations yet.</td></tr>'}</table></div>`;
+$('#app').innerHTML=h}
+function walletView(){const fee=r=>(D.T.find(t=>t.id==r.tid)||{}).fee||0,ap=D.R.filter(r=>r.status=='approved'),col=ap.reduce((s,r)=>s+fee(r),0),
+owed=D.U.reduce((s,u)=>s+u.bal,0),sum=st=>D.W.filter(w=>w.s==st).reduce((s,w)=>s+w.a,0),pend=sum('pending'),paid=sum('paid'),nm=p=>(D.U.find(u=>u.p==p)||{}).name||p;
+return `<div class="grid"><div class="card"><span class="tag">Admin wallet</span><h2 style="margin:8px 0">₹${col-paid-owed-pend}</h2>
+<div class="row">Entry fees collected (approved)<b>₹${col}</b></div><div class="row">Owed to users<b>₹${owed}</b></div><div class="row">Withdrawals pending<b>₹${pend}</b></div><div class="row">Paid out<b>₹${paid}</b></div></div>
+<div class="card"><h3 style="margin:0">Credit winnings</h3><label>Approved team</label><select id="aw">${ap.map(r=>`<option value="${r.id}">${esc((D.T.find(t=>t.id==r.tid)||{}).name)} – ${esc(r.team)}</option>`).join('')||'<option value="">No approved teams</option>'}</select>
+<label>Amount (₹)</label><input id="aa" type="number" min="1"><button class="pri" style="margin-top:10px" onclick="award()">Add to user wallet</button></div></div>
+<h3>Withdrawal requests</h3><div class="card wrap"><table><tr><th>User</th><th>Phone</th><th>Amount</th><th>UPI</th><th>Status</th><th></th></tr>${D.W.map(w=>`<tr><td>${esc(nm(w.p))}</td><td>${esc(w.p)}</td><td>₹${w.a}</td><td>${esc(w.upi)}</td><td>${w.s}</td><td>${w.s=='pending'?`<button class="sm ok" onclick="wdSet(${w.id},'paid')">Mark paid</button> <button class="sm bad" onclick="wdSet(${w.id},'rejected')">Reject</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="mu">No requests.</td></tr>'}</table></div>
+<h3>Users</h3><div class="card wrap"><table><tr><th>Name</th><th>Phone</th><th>Balance</th><th>Code</th><th>Referred by</th></tr>${D.U.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.p)}</td><td>₹${u.bal}</td><td>${esc(u.code)}</td><td>${esc(u.by?nm(u.by):'-')}</td></tr>`).join('')||'<tr><td colspan="5" class="mu">No users yet.</td></tr>'}</table></div>`}
+function award(){const r=D.R.find(x=>x.id==$('#aw').value),a=+$('#aa').value;if(!r||!(a>0))return alert('Pick a team and enter an amount.');
+if(!D.U.find(u=>u.p==r.phone))return alert('This user has no account.');cr(r.phone,a,'Prize: '+((D.T.find(t=>t.id==r.tid)||{}).name||'')+' ('+r.team+')');save();adminView()}
+function wdSet(id,s){const w=D.W.find(x=>x.id==id);w.s=s;if(s=='rejected')cr(w.p,w.a,'Withdrawal rejected, refunded');else D.L.push({p:w.p,a:0,n:'Withdrawal paid to '+w.upi,t:Date.now()});save();adminView()}
+function addForm(){return `<div class="card" style="max-width:560px"><label>Game</label><select id="g"><option>BGMI</option><option>Free Fire MAX</option></select>
+<label>Tournament name</label><input id="n"><div class="f2"><div><label>Date & time</label><input id="d" type="datetime-local"></div><div><label>Mode</label><select id="m"><option>Solo</option><option>Duo</option><option selected>Squad</option></select></div>
+<div><label>Entry fee (₹)</label><input id="f" type="number" min="0" value="50"></div><div><label>Prize pool (₹)</label><input id="p" type="number" min="0" value="1000"></div>
+<div><label>Total slots</label><input id="s" type="number" min="2" value="25"></div><div><label>UPI ID for payment</label><input id="u" value="arena@upi"></div></div>
+<p id="err" style="color:var(--bad)"></p><button class="pri" onclick="addT()">Create Tournament</button></div>`}
+function addT(){const v=i=>$('#'+i).value.trim();if(!v('n')||!v('d')||!v('u'))return er('err','Name, date and UPI are required.');
+D.T.push({id:D.n++,game:v('g'),name:v('n'),date:v('d'),mode:v('m'),fee:+v('f')||0,prize:+v('p')||0,slots:+v('s')||25,upi:v('u'),room:'',pass:''});save();atab='tours';adminView()}
+function setRoom(id){const t=D.T.find(x=>x.id==id);t.room=$('#rm'+id).value.trim();t.pass=$('#rp'+id).value.trim();save();adminView()}
+function delT(id){if(!confirm('Delete this tournament and its registrations?'))return;D.T=D.T.filter(t=>t.id!=id);D.R=D.R.filter(r=>r.tid!=id);save();adminView()}
+function setS(id,s){const r=D.R.find(r=>r.id==id);r.status=s;const u=D.U.find(x=>x.p==r.phone);
+if(s=='approved'&&u&&u.by&&!u.paid&&u.by!=u.p){u.paid=1;cr(u.by,REF,'Referral: '+u.name)}save();adminView()}
+render();
+</script></body></html>
